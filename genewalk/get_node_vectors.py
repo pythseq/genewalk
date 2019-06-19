@@ -7,11 +7,38 @@ import logging
 import argparse
 import pickle as pkl
 import networkx as nx
-from genewalk.nx_mg_assembler import Nx_MG_Assembler
+from multiprocessing import Pool
 from genewalk.deepwalk import DeepWalk
+from genewalk.nx_mg_assembler import Nx_MG_Assembler
 
 
 logger = logging.getLogger('genewalk.get_node_vectors')
+
+
+def run_repeat(rep, MGA):
+    logger.info('%s/%s' % (rep, args.Nreps))
+    DW = DeepWalk(graph=MGA)
+
+    logger.info('generate random walks')
+    start = time.time()
+    DW.get_walks()
+    end = time.time()
+    logger.info('DW.get_walks done %.2f' % (end - start))  # in sec
+
+    logger.info('generate node vectors')
+    start = time.time()
+    DW.word2vec()
+    end = time.time()
+    logger.info('DW.word2vec done %.2f' % (end - start))  # in sec
+
+    # Pickle the node vectors (embeddings) and DW object
+    nv = copy.deepcopy(DW.model.wv)
+    filename = 'GeneWalk_DW_nv_%d.pkl' % rep
+    with open(os.path.join(args.path, filename), 'wb') as f:
+        pkl.dump(nv, f)
+    filename = 'GeneWalk_DW_%d.pkl' % rep
+    with open(os.path.join(args.path, filename), 'wb') as f:
+        pkl.dump(DW, f)
 
 
 if __name__ == '__main__':
@@ -52,27 +79,10 @@ if __name__ == '__main__':
         pkl.dump(MGA, f, protocol=pkl.HIGHEST_PROTOCOL)
     del MG
 
-    for rep in range(1, args.Nreps+1):
-        logger.info('%s/%s' % (rep, args.Nreps))
-        DW = DeepWalk(graph=MGA)
-
-        logger.info('generate random walks')
-        start = time.time()
-        DW.get_walks()
-        end = time.time()
-        logger.info('DW.get_walks done %.2f' % (end - start))  # in sec
-
-        logger.info('generate node vectors')
-        start = time.time()
-        DW.word2vec()
-        end = time.time()
-        logger.info('DW.word2vec done %.2f' % (end - start))  # in sec
-
-        # Pickle the node vectors (embeddings) and DW object
-        nv = copy.deepcopy(DW.model.wv)
-        filename = 'GeneWalk_DW_nv_%d.pkl' % rep
-        with open(os.path.join(args.path, filename), 'wb') as f:
-            pkl.dump(nv, f)
-        filename = 'GeneWalk_DW_%d.pkl' % rep
-        with open(os.path.join(args.path, filename), 'wb') as f:
-            pkl.dump(DW, f)
+    pool = Pool(args.nproc) if args.nproc > 1 else None
+    if pool:
+        run_repeat_wrapper = lambda x: run_repeat(x, MGA)
+        pool.map(run_repeat_wrapper, range(1, args.Nreps + 1))
+    else:
+        for rep in range(1, args.Nreps + 1):
+            run_repeat(rep, MG)
