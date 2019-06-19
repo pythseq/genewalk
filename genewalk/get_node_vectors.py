@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-
 import os
 import copy
 import time
 import logging
 import argparse
+import functools
 import pickle as pkl
 import networkx as nx
 from multiprocessing import Pool
@@ -49,8 +49,8 @@ if __name__ == '__main__':
     parser.add_argument('--path', default='~/genewalk/')
     parser.add_argument('--stmts', default='data/JQ1_HGNCidForINDRA_stmts.pkl')
     parser.add_argument('--fplx', default='data/JQ1_HGNCidForINDRA_fplx.txt')
-    parser.add_argument('--path_GO', default='~/genewalk/GO/')
-    parser.add_argument('--Nreps', default=10)
+    parser.add_argument('--nproc', default=1, type=int)
+    parser.add_argument('--Nreps', default=15, type=int)
     args = parser.parse_args()
 
     # Open pickled statements
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         stmts = pkl.load(f)
 
     logger.info('assembling network')
-    MG = Nx_MG_Assembler(stmts, args.path_GO)
+    MG = Nx_MG_Assembler(stmts)
     del stmts
 
     logger.info('adding genes nodes from INDRA stmts')
@@ -81,8 +81,8 @@ if __name__ == '__main__':
 
     pool = Pool(args.nproc) if args.nproc > 1 else None
     if pool:
-        run_repeat_wrapper = lambda x: run_repeat(x, MGA)
+        run_repeat_wrapper = functools.partial(run_repeat, MGA=MGA)
         pool.map(run_repeat_wrapper, range(1, args.Nreps + 1))
     else:
         for rep in range(1, args.Nreps + 1):
-            run_repeat(rep, MG)
+            run_repeat(rep, MGA)

@@ -105,8 +105,8 @@ if __name__ == '__main__':
         description=('Choose a path where GeneWalk files are '
                      'generated (default: ~/genewalk/ ).'))
     parser.add_argument('--path', default='~/genewalk/')
-    parser.add_argument('--Nreps', default=15)
-    parser.add_argument('--nproc', default=1)
+    parser.add_argument('--Nreps', default=15, type=int)
+    parser.add_argument('--nproc', default=1, type=int)
     args = parser.parse_args()
 
     # load multigraph
