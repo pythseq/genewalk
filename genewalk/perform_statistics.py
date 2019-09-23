@@ -72,7 +72,8 @@ class GeneWalk(object):
             go_attrib['ncon_go'] = len(self.graph[go_node_id])
             go_attrib['go_name'] = self.graph.nodes[go_node_id]['name']
             go_attrib['go_domain'] = \
-                self.graph.nodes[go_node_id]['domain'].replace('_', ' ')
+                self.graph.nodes[go_node_id]['domain'].replace('_', ' ') \
+                if 'domain' in self.graph.nodes[go_node_id] else None
             go_attrib['pval'] = self.psim(sim_score)
             pvals.append(go_attrib['pval'])
             go_attribs.append(go_attrib)
